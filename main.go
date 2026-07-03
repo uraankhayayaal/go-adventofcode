@@ -48,13 +48,13 @@ func main() {
 			panic(fmt.Sprintf("Failed to compile plugin %s: %v", plugingGoPath, err))
 		}
 
-		run(plugingSoPath, inputFilePath)
+		run(plugingSoPath, inputFilePath, mode)
 	} else {
 		fmt.Println("Wrong count of arguments! Exmaple: `go run . 2025 day8 prod`")
 	}
 }
 
-func run(plugingPath string, inputFilePath string) {
+func run(plugingPath string, inputFilePath string, mode string) {
 	p, err := plugin.Open(plugingPath)
 	if err != nil {
 		log.Fatalf("Error to open file %s: %v\n", plugingPath, err)
@@ -65,12 +65,12 @@ func run(plugingPath string, inputFilePath string) {
 		log.Fatalf("No solution method in file %s: %v\n", plugingPath, err)
 	}
 
-	solutionFunc, ok := symbol.(func(string))
+	solutionFunc, ok := symbol.(func(string, string))
 	if !ok {
 		log.Fatalf("Unexpected function signature in file %s: %v\n", plugingPath, err)
 	}
 
-	solutionFunc(inputFilePath)
+	solutionFunc(inputFilePath, mode)
 }
 
 func compileSolution(plugingGoPath string, plugingSoPath string) error {
