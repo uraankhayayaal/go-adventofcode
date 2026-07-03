@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"go-adventofcode/src/helpers"
 	"log"
@@ -31,7 +32,7 @@ func Solution(inputFilePath string, mode string) {
 		log.Fatalf("Failed to read test file: %v", err)
 	}
 
-	mapOfPints := make([]Point, len(lines)) // []Point{}
+	mapOfPoints := make([]Point, len(lines)) // []Point{}
 
 	for index, line := range lines {
 		coordinates := strings.Split(line, ",")
@@ -50,74 +51,79 @@ func Solution(inputFilePath string, mode string) {
 			fmt.Println("Error during conversion:", err)
 			return
 		}
-		mapOfPints[index] = Point{index, 0, x, y, z}
+		mapOfPoints[index] = Point{index, 0, x, y, z}
 	}
 
-	distances := make([][]float64, len(mapOfPints))
+	distances := make([][]float64, len(mapOfPoints))
 
-	for i := 0; i < len(mapOfPints); i++ {
-		distances[i] = make([]float64, len(mapOfPints))
-		for j := i + 1; j < len(mapOfPints); j++ {
-			distances[i][j] = math.Sqrt(math.Pow(float64(mapOfPints[i].x-mapOfPints[j].x), 2) + math.Pow(float64(mapOfPints[i].y-mapOfPints[j].y), 2) + math.Pow(float64(mapOfPints[i].z-mapOfPints[j].z), 2))
+	for i := 0; i < len(mapOfPoints); i++ {
+		distances[i] = make([]float64, len(mapOfPoints))
+		for j := i + 1; j < len(mapOfPoints); j++ {
+			distances[i][j] = math.Sqrt(math.Pow(float64(mapOfPoints[i].x-mapOfPoints[j].x), 2) + math.Pow(float64(mapOfPoints[i].y-mapOfPoints[j].y), 2) + math.Pow(float64(mapOfPoints[i].z-mapOfPoints[j].z), 2))
 		}
 	}
 
 	for i := 0; i < times; i++ {
-		closestPoints := getClosestPoints(&mapOfPints, &distances)
+		closestPoints := getClosestPoints(&mapOfPoints, &distances)
 
-		if mapOfPints[closestPoints[0]].chain != 0 && mapOfPints[closestPoints[1]].chain == 0 {
-			mapOfPints[closestPoints[1]].chain = mapOfPints[closestPoints[0]].chain
-		}
-		if mapOfPints[closestPoints[1]].chain != 0 && mapOfPints[closestPoints[0]].chain == 0 {
-			mapOfPints[closestPoints[0]].chain = mapOfPints[closestPoints[1]].chain
-		}
-		if mapOfPints[closestPoints[1]].chain == 0 && mapOfPints[closestPoints[0]].chain == 0 {
-			mapOfPints[closestPoints[0]].chain = i + 1
-			mapOfPints[closestPoints[1]].chain = i + 1
+		if mapOfPoints[closestPoints[0]].chain != 0 && mapOfPoints[closestPoints[1]].chain == 0 {
+			mapOfPoints[closestPoints[1]].chain = mapOfPoints[closestPoints[0]].chain
+		} else if mapOfPoints[closestPoints[1]].chain != 0 && mapOfPoints[closestPoints[0]].chain == 0 {
+			mapOfPoints[closestPoints[0]].chain = mapOfPoints[closestPoints[1]].chain
+		} else if mapOfPoints[closestPoints[1]].chain == 0 && mapOfPoints[closestPoints[0]].chain == 0 {
+			mapOfPoints[closestPoints[0]].chain = i + 1
+			mapOfPoints[closestPoints[1]].chain = i + 1
 		}
 
-		fmt.Println("Closest points:", mapOfPints[closestPoints[0]].id, mapOfPints[closestPoints[0]].chain, mapOfPints[closestPoints[1]].id, mapOfPints[closestPoints[1]].chain)
+		// fmt.Println("Closest points:", mapOfPoints[closestPoints[0]].id, mapOfPoints[closestPoints[0]].chain, mapOfPoints[closestPoints[1]].id, mapOfPoints[closestPoints[1]].chain)
 	}
 
 	chains := map[int]int{}
-	for i := 0; i < len(mapOfPints); i++ {
-		val, exists := chains[mapOfPints[i].chain]
+	for i := 0; i < len(mapOfPoints); i++ {
+		val, exists := chains[mapOfPoints[i].chain]
 		if exists {
-			chains[mapOfPints[i].chain] = val + 1
+			chains[mapOfPoints[i].chain] = val + 1
 		} else {
-			chains[mapOfPints[i].chain] = 1
+			chains[mapOfPoints[i].chain] = 1
 		}
 	}
 
-	for i := 0; i < len(chains); i++ {
-		fmt.Println("chain:", i, chains[i])
-	}
-
 	keys := make([]int, 0, len(chains))
-	for k := range chains {
-		keys = append(keys, k)
+	for k, v := range chains {
+		if k == 0 {
+			continue // chains[0] - это остатки, не использовать в перемножении
+		}
+		keys = append(keys, v)
 	}
-	slices.Sort(keys)
+	slices.SortFunc(keys, func(a, b int) int {
+		return cmp.Compare(b, a)
+	})
 
-	for i := 0; i < len(keys); i++ {
-		fmt.Println("keys:", keys[i])
+	result := 1
+	for i := 0; i < 3; i++ {
+		fmt.Println(keys[i])
+		result *= keys[i]
 	}
+
+	fmt.Println("Ответ:", result)
 }
 
-func getClosestPoints(mapOfPints *[]Point, distances *[][]float64) [2]int {
+func getClosestPoints(mapOfPoints *[]Point, distances *[][]float64) [2]int {
 	distance := math.MaxFloat64
 	curI := 0
 	curJ := 0
 	for i := 0; i < len(*distances); i++ {
 		for j := i + 1; j < len((*distances)[i]); j++ {
 			// fmt.Println(distance, (*distances)[i][j])
-			if distance > (*distances)[i][j] && ((*mapOfPints)[i].chain == 0 || (*mapOfPints)[j].chain == 0) {
+			if distance > (*distances)[i][j] && ((*mapOfPoints)[i].chain == 0 || (*mapOfPoints)[j].chain == 0) {
 				distance = (*distances)[i][j]
 				curI = i
 				curJ = j
 			}
 		}
 	}
+
+	fmt.Println("Min:", (*mapOfPoints)[curI].x, (*mapOfPoints)[curI].y, (*mapOfPoints)[curI].z, "-", (*mapOfPoints)[curJ].x, (*mapOfPoints)[curJ].y, (*mapOfPoints)[curJ].z)
 
 	return [2]int{curI, curJ}
 }
